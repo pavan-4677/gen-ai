@@ -8,7 +8,7 @@ from datetime import datetime
 import streamlit as st
 import pandas as pd
 
-from src.utils import init_session_state, load_css, render_hero, render_footer, get_score_badge
+from src.utils import init_session_state, load_css, render_hero, render_footer, render_sidebar, get_score_badge
 from src.report_generator import ReportGenerator
 from src.quality_analyzer import QualityAnalyzer
 from src.ai_service import AIService
@@ -21,16 +21,24 @@ st.set_page_config(
 
 init_session_state()
 load_css()
+render_sidebar(current_step=6)
 
 render_hero(
     title="Comprehensive Data Quality & Audit Report",
     subtitle="Executive data health assessment, before-and-after cleaning comparisons, and multi-format compliance exports.",
-    badge="Step 6 • Audit & Reporting"
+    badge="Step 6 • Audit & Compliance Export"
 )
 
 if st.session_state.get("df_raw") is None:
-    st.warning("⚠️ No dataset loaded. Please upload a dataset to generate a quality report.")
-    if st.button("📂 Go to Dataset Upload"):
+    st.markdown(
+        """
+        <div class="warning-box">
+            <strong>No Dataset in Memory:</strong> Please upload a dataset to generate a quality audit report.
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+    if st.button("📂 Go to Dataset Upload", type="primary"):
         st.switch_page("pages/2_Upload_Dataset.py")
     st.stop()
 
@@ -119,7 +127,7 @@ with down_col4:
         use_container_width=True
     )
 
-st.markdown("---")
+st.markdown("<br><hr style='border-color:rgba(56,189,248,0.12);'><br>", unsafe_allow_html=True)
 
 # Before vs After Comparison Section
 st.subheader("⚖️ Before vs After Data Quality Impact")
@@ -154,7 +162,7 @@ with comp_col4:
     )
 
 # Dimension Comparison Table
-st.markdown("#### Dimensional Comparison")
+st.markdown("#### Dimensional Comparison Table")
 raw_dims = diagnosis_raw["quality_scores"]["dimensions"]
 clean_dims = diagnosis_clean["quality_scores"]["dimensions"]
 
@@ -186,7 +194,7 @@ comparison_df = pd.DataFrame([
 ])
 st.dataframe(comparison_df, use_container_width=True)
 
-st.markdown("---")
+st.markdown("<br><hr style='border-color:rgba(56,189,248,0.12);'><br>", unsafe_allow_html=True)
 
 # On-screen Report Summary
 st.subheader("📑 Executive Report Summary")

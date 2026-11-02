@@ -7,7 +7,7 @@ dataset privacy disclosures, and session management.
 import os
 import streamlit as st
 
-from src.utils import init_session_state, load_css, render_hero, render_footer
+from src.utils import init_session_state, load_css, render_hero, render_footer, render_sidebar
 
 st.set_page_config(
     page_title="Settings | Dataset Quality Analysis",
@@ -17,11 +17,12 @@ st.set_page_config(
 
 init_session_state()
 load_css()
+render_sidebar(current_step=1)
 
 render_hero(
     title="System Settings & LLM Configuration",
     subtitle="Configure Generative AI model parameters, scoring formula weights, privacy rules, and session state.",
-    badge="Configuration"
+    badge="Configuration & Preferences"
 )
 
 settings = st.session_state["settings"]
@@ -44,9 +45,9 @@ with tab_llm:
     col_llm1, col_llm2 = st.columns(2)
     with col_llm1:
         current_key = settings.get("openai_api_key", "")
-        # Masked key preview
-        display_key = current_key if not current_key or current_key.startswith("your_") else f"{current_key[:4]}••••••••{current_key[-4:]}"
-        st.caption(f"Current Status: **{'🟢 Configured' if current_key and not current_key.startswith('your_') else '⚪ Offline Mode (No Key Set)'}**")
+        is_live = current_key and not current_key.startswith("your_")
+        status_badge = '<span style="color:#10B981;font-weight:700;">🟢 Live LLM Configured</span>' if is_live else '<span style="color:#38BDF8;font-weight:700;">🔵 Deterministic Heuristic Engine (Offline)</span>'
+        st.markdown(f"**Current Status:** {status_badge}", unsafe_allow_html=True)
 
         new_key = st.text_input(
             "OpenAI API Key:",

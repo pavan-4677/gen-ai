@@ -301,3 +301,4 @@ class ReportGenerator:
             df.to_excel(writer, index=False, sheet_name="Cleaned_Data")
         buffer.seek(0)
         return buffer.getvalue()
+

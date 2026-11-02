@@ -8,7 +8,7 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 
-from src.utils import init_session_state, load_css, render_hero, render_footer, render_metric_card
+from src.utils import init_session_state, load_css, render_hero, render_footer, render_sidebar
 from src.outlier_detector import OutlierDetector
 from src.quality_analyzer import QualityAnalyzer
 from src.data_loader import DataLoader
@@ -21,22 +21,30 @@ st.set_page_config(
 
 init_session_state()
 load_css()
+render_sidebar(current_step=2)
 
 render_hero(
     title="Comprehensive Dataset Diagnosis",
     subtitle="10-point structural, statistical, and semantic integrity analysis with record-level audit inspection.",
-    badge="Step 2 • Diagnosis"
+    badge="Step 2 • Diagnostic Deep Dive"
 )
 
 # Guard: Ensure dataset is loaded
 if st.session_state.get("df_raw") is None:
-    st.warning("⚠️ No dataset currently loaded. Please upload a dataset or load the benchmark sample.")
-    col_a, col_b = st.columns([1, 1])
+    st.markdown(
+        """
+        <div class="warning-box">
+            <strong>No Dataset in Memory:</strong> Please upload a dataset or load a benchmark dataset to run diagnostics.
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+    col_a, col_b = st.columns(2)
     with col_a:
         if st.button("📂 Go to Dataset Upload Page", use_container_width=True):
             st.switch_page("pages/2_Upload_Dataset.py")
     with col_b:
-        if st.button("🧪 Load Sample Customer Dataset", use_container_width=True, type="primary"):
+        if st.button("🧪 Load Customer Demographics Sample (Instant)", use_container_width=True, type="primary"):
             sample_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "sample_data", "sample_dataset.csv")
             loader = DataLoader()
             df, meta = loader.load_dataset(sample_path)
@@ -53,7 +61,6 @@ if st.session_state.get("df_raw") is None:
 df = st.session_state["df_raw"]
 diagnosis = st.session_state.get("diagnosis_results")
 
-# If diagnosis not yet run, execute it
 if diagnosis is None:
     with st.spinner("Analyzing dataset metrics..."):
         analyzer = QualityAnalyzer(
@@ -69,10 +76,10 @@ missing_info = diagnosis["missing_analysis"]
 dup_info = diagnosis["duplicate_analysis"]
 outlier_info = diagnosis["outlier_analysis"]
 
-# Top Overview KPI Cards
+# Top Overview KPI Cards Grid
 col1, col2, col3, col4, col5, col6 = st.columns(6)
 with col1:
-    st.metric("Total Rows", f"{profile['total_rows']:,}")
+    st.metric("Total Records", f"{profile['total_rows']:,}")
 with col2:
     st.metric("Total Columns", profile['total_columns'])
 with col3:
@@ -84,7 +91,7 @@ with col5:
 with col6:
     st.metric("Total Issues", diagnosis['total_issues_count'])
 
-st.markdown("---")
+st.markdown("<br>", unsafe_allow_html=True)
 
 # Detailed Tabs for the 10 Checks
 tab_issues, tab_missing, tab_dup, tab_outlier, tab_types, tab_cardinality, tab_distributions = st.tabs([
@@ -92,25 +99,32 @@ tab_issues, tab_missing, tab_dup, tab_outlier, tab_types, tab_cardinality, tab_d
     f"❓ Missing Values ({missing_info['columns_with_missing_count']} cols)",
     f"👥 Duplicates ({dup_info['duplicate_rows_count']} rows)",
     f"📈 IQR Outliers ({len(outlier_info['columns_with_outliers'])} cols)",
-    "🏷️ Data Types & Warnings",
-    "🔠 Cardinality & Consistency",
+    "🏷️ Schema & Type Inferences",
+    "🔠 Cardinality & Formatting",
     "📊 Attribute Distributions"
 ])
 
 # 1. Detected Issues Tab
 with tab_issues:
-    st.subheader("Actionable Data Quality Issues")
+    st.subheader("Prioritized Data Quality Remediation Queue")
     issues = diagnosis.get("detected_issues", [])
     if not issues:
-        st.success("🎉 Outstanding! No critical data quality issues were flagged.")
+        st.markdown(
+            """
+            <div class="success-box">
+                <strong>Zero Issues Detected:</strong> Dataset passed all 10 diagnostic integrity checks with flying colors.
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
     else:
         for idx, issue in enumerate(issues, 1):
             severity = issue.get("severity", "Medium")
             icon = "🔴" if severity == "High" else ("🟡" if severity == "Medium" else "🔵")
             with st.expander(f"{icon} #{idx} [{issue['category']}] {issue['column']}: {issue['description']}", expanded=(idx <= 3)):
-                st.markdown(f"**Category:** `{issue['category']}` | **Severity:** `{severity}` | **Target:** `{issue['column']}`")
-                st.markdown(f"**Issue Detail:** {issue['description']}")
-                st.markdown(f"**Recommended Remedy:** {issue['recommendation']}")
+                st.markdown(f"**Category:** `{issue['category']}` | **Severity:** `{severity}` | **Target Column:** `{issue['column']}`")
+                st.markdown(f"**Technical Diagnosis:** {issue['description']}")
+                st.markdown(f"**Remediation Recommendation:** {issue['recommendation']}")
 
 # 2. Missing Values Tab
 with tab_missing:
@@ -128,33 +142,33 @@ with tab_missing:
 
     # Record-level inspection
     if missing_info['rows_with_missing'] > 0:
-        with st.expander("🔍 Inspect Records with Missing Values"):
+        with st.expander("🔍 Inspect Specific Records Containing Missing Values"):
             null_rows = df[df.isna().any(axis=1)]
             st.dataframe(null_rows, use_container_width=True)
 
 # 3. Duplicate Records Tab
 with tab_dup:
-    st.subheader("Duplicate Record Diagnosis")
+    st.subheader("Duplicate Record Detection")
     st.write(
         f"Detected **{dup_info['duplicate_rows_count']} duplicate rows** "
-        f"({dup_info['duplicate_percentage']}% of the dataset). Duplicate rows inflate sample sizes and can cause data leakage in cross-validation."
+        f"({dup_info['duplicate_percentage']}% of total dataset). Duplicate records inflate metrics and create data leakage in train/test splits."
     )
     if dup_info['duplicate_rows_count'] > 0:
         dup_indices = dup_info.get("duplicate_indices", [])
-        with st.expander("🔍 Inspect Duplicate Records", expanded=True):
+        with st.expander("🔍 Inspect Full Duplicate Records", expanded=True):
             st.dataframe(df.loc[dup_indices], use_container_width=True)
     else:
-        st.success("Zero duplicate records identified. All rows are completely distinct.")
+        st.success("Zero duplicate records identified. All rows represent distinct observations.")
 
 # 4. Outlier Analysis Tab (IQR Method)
 with tab_outlier:
     st.subheader("Statistical Outlier Detection (Interquartile Range - IQR 1.5x)")
     st.markdown("""
-    **Methodology:**
+    **Mathematical Formulation:**
     - $\\text{IQR} = Q_3 - Q_1$
     - $\\text{Lower Bound} = Q_1 - 1.5 \\times \\text{IQR}$
     - $\\text{Upper Bound} = Q_3 + 1.5 \\times \\text{IQR}$
-    - Any observation outside $[\text{Lower Bound}, \text{Upper Bound}]$ is flagged as a statistical outlier.
+    - Observations outside $[\\text{Lower Bound}, \\text{Upper Bound}]$ are flagged as statistical anomalies.
     """)
 
     outlier_cols = outlier_info.get("columns_with_outliers", [])
@@ -164,11 +178,11 @@ with tab_outlier:
 
         c1, c2, c3, c4 = st.columns(4)
         c1.metric("Outlier Count", rep["outlier_count"])
-        c2.metric("Outlier %", f"{rep['outlier_pct']}%")
-        c3.metric("IQR", f"{rep['iqr']:.2f}")
-        c4.metric("Allowed Bounds", f"[{rep['lower_bound']:.2f}, {rep['upper_bound']:.2f}]")
+        c2.metric("Outlier Ratio", f"{rep['outlier_pct']}%")
+        c3.metric("IQR Spread", f"{rep['iqr']:.2f}")
+        c4.metric("Valid IQR Range", f"[{rep['lower_bound']:.2f}, {rep['upper_bound']:.2f}]")
 
-        with st.expander(f"🔍 Inspect Outlier Records in '{col_select}'", expanded=True):
+        with st.expander(f"🔍 Inspect Outlier Rows in '{col_select}'", expanded=True):
             outlier_rows = OutlierDetector.get_outlier_rows(df, rep["outlier_indices"])
             st.dataframe(outlier_rows, use_container_width=True)
     else:
@@ -179,7 +193,7 @@ with tab_types:
     st.subheader("Data Type Analysis & Schema Inferences")
     col_t1, col_t2 = st.columns([1, 1])
     with col_t1:
-        st.markdown("#### Detected Column Types")
+        st.markdown("#### Detected Schema Types")
         type_df = pd.DataFrame([
             {"Column": col, "Data Type": dtype}
             for col, dtype in diagnosis["dtype_analysis"]["column_types"].items()
@@ -187,7 +201,7 @@ with tab_types:
         st.dataframe(type_df, use_container_width=True)
 
     with col_t2:
-        st.markdown("#### Type Mismatch Warnings")
+        st.markdown("#### Type Mismatch & Coercion Warnings")
         warnings = diagnosis["dtype_analysis"].get("type_mismatch_warnings", [])
         if warnings:
             for w in warnings:
@@ -217,23 +231,23 @@ with tab_cardinality:
             st.caption("No excessive cardinality columns detected.")
 
     with c_card2:
-        st.markdown("#### Text Consistency & Whitespace")
+        st.markdown("#### Text Consistency & Capitalization")
         text_issues = diagnosis["consistency_analysis"].get("text_issues", [])
         if text_issues:
             for t in text_issues:
                 st.warning(
                     f"Column **`{t['column']}`**: {t['whitespace_count']} cells with untrimmed whitespace. "
-                    f"Casing discrepancy: {t['casing_inconsistency']} ({t['unique_variants']} variants vs {t['canonical_variants']} standardized)."
+                    f"Casing discrepancy: {t['casing_inconsistency']} ({t['unique_variants']} variants vs {t['canonical_variants']} canonical)."
                 )
         else:
             st.success("All text columns follow uniform whitespace and capitalization.")
 
 # 7. Attribute Distributions Tab
 with tab_distributions:
-    st.subheader("Attribute Distributions & Summary Statistics")
+    st.subheader("Attribute Distributions & Descriptive Statistics")
     num_cols = profile.get("numerical_column_names", [])
     if num_cols:
-        st.markdown("#### Numerical Attribute Summary")
+        st.markdown("#### Numerical Attribute Summary Table")
         num_summary = []
         for col in num_cols:
             col_prof = diagnosis["profile"]["columns"].get(col, {})

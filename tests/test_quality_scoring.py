@@ -85,3 +85,4 @@ def test_custom_weights():
     result = engine.calculate_scores(df)
 
     assert result["overall_score"] == 100.0
+

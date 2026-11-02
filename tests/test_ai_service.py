@@ -97,3 +97,4 @@ def test_prompt_injection_sanitization():
     assert ">" not in clean
     assert "{" not in clean
     assert "}" not in clean
+

@@ -1,13 +1,14 @@
 """
 Page 1: Home / Overview
-Landing page explaining system architecture, features, workflow, and quick-start actions.
+Premium SaaS landing page showcasing platform capabilities, processing architecture,
+feature highlights, and instant demonstration benchmarks.
 """
 
 import os
 import streamlit as st
 import pandas as pd
 
-from src.utils import init_session_state, load_css, render_hero, render_footer
+from src.utils import init_session_state, load_css, render_hero, render_footer, render_sidebar
 from src.data_loader import DataLoader
 from src.quality_analyzer import QualityAnalyzer
 
@@ -20,111 +21,167 @@ st.set_page_config(
 
 init_session_state()
 load_css()
+render_sidebar(current_step=1)
 
 render_hero(
     title="Intelligent Dataset Diagnosis & Quality Analysis",
-    subtitle="End-to-End Automated Data Profiling, IQR Anomaly Detection, Explainable Quality Scoring, and Generative AI Cleaning Strategy.",
-    badge="Final Year Gen AI Project • AI & ML"
+    subtitle="Enterprise AI platform for automated statistical profiling, IQR anomaly detection, explainable data quality scoring, and context-grounded Generative AI remediation.",
+    badge="Enterprise AI SaaS • B.Tech Capstone Project"
 )
 
-# Active dataset alert banner
+# Active Session Notification or Quick Launch CTAs
 if st.session_state.get("df_raw") is not None:
-    st.success(
-        f"**Active Session:** Currently analyzing dataset **`{st.session_state.get('active_dataset_name')}`** "
-        f"({len(st.session_state.get('df_raw'))} rows, {len(st.session_state.get('df_raw').columns)} columns). "
-        "Navigate using the sidebar to view Diagnosis, Dashboard, AI Assistant, or Cleaning Studio."
+    st.markdown(
+        f"""
+        <div class="success-box">
+            <strong>Active Session Loaded:</strong> Currently inspecting dataset 
+            <code>{st.session_state.get('active_dataset_name')}</code> 
+            ({len(st.session_state.get('df_raw')):,} records, {len(st.session_state.get('df_raw').columns)} attributes). 
+            Navigate using the sidebar to explore <strong>Diagnosis</strong>, <strong>Dashboard</strong>, <strong>Gen AI Assistant</strong>, or the <strong>Cleaning Studio</strong>.
+        </div>
+        """,
+        unsafe_allow_html=True
     )
 else:
-    col_cta1, col_cta2 = st.columns([1, 1])
-    with col_cta1:
-        st.info("💡 **Quick Start:** You can upload your own CSV or Excel dataset, or load a pre-built dirty test dataset below.")
-    with col_cta2:
-        if st.button("🚀 Load Customer Demographics Sample Dataset (Instant Demo)", use_container_width=True, type="primary"):
-            sample_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "sample_data", "sample_dataset.csv")
-            if os.path.exists(sample_path):
-                loader = DataLoader()
-                df, meta = loader.load_dataset(sample_path)
-                st.session_state["df_raw"] = df
-                st.session_state["df_clean"] = df.copy()
-                st.session_state["active_dataset_name"] = "sample_dataset.csv"
-                st.session_state["dataset_metadata"] = meta
-                
-                # Precompute analysis
-                analyzer = QualityAnalyzer(
-                    iqr_multiplier=st.session_state["settings"].get("iqr_threshold", 1.5),
-                    scoring_weights=st.session_state["settings"].get("scoring_weights")
-                )
-                st.session_state["diagnosis_results"] = analyzer.analyze(df, dataset_name="sample_dataset.csv")
-                st.session_state["quality_scores"] = st.session_state["diagnosis_results"]["quality_scores"]
-                st.session_state["cleaning_history"] = []
-                st.rerun()
+    st.markdown(
+        """
+        <div class="info-box">
+            <strong>Quick Start:</strong> Upload your proprietary CSV or Excel spreadsheet, or load one of our pre-configured benchmarks containing real-world dirty data scenarios (missing values, extreme IQR outliers, duplicate entries, and inconsistent casing).
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+    
+    col_demo1, col_demo2 = st.columns(2)
+    sample_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "sample_data")
 
-st.markdown("---")
+    with col_demo1:
+        if st.button("🚀 Load Customer Demographics Benchmark (Instant Demo)", use_container_width=True, type="primary"):
+            p = os.path.join(sample_dir, "sample_dataset.csv")
+            loader = DataLoader()
+            df, meta = loader.load_dataset(p)
+            st.session_state["df_raw"] = df
+            st.session_state["df_clean"] = df.copy()
+            st.session_state["active_dataset_name"] = "sample_dataset.csv"
+            st.session_state["dataset_metadata"] = meta
+            analyzer = QualityAnalyzer()
+            st.session_state["diagnosis_results"] = analyzer.analyze(df, dataset_name="sample_dataset.csv")
+            st.session_state["quality_scores"] = st.session_state["diagnosis_results"]["quality_scores"]
+            st.session_state["cleaning_history"] = []
+            st.session_state["ai_summary_cache"] = None
+            st.rerun()
 
-# Feature Highlights Grid
-col1, col2, col3 = st.columns(3)
+    with col_demo2:
+        if st.button("📊 Load Telecom Churn Benchmark (Instant Demo)", use_container_width=True):
+            p = os.path.join(sample_dir, "customer_churn_dirty.csv")
+            loader = DataLoader()
+            df, meta = loader.load_dataset(p)
+            st.session_state["df_raw"] = df
+            st.session_state["df_clean"] = df.copy()
+            st.session_state["active_dataset_name"] = "customer_churn_dirty.csv"
+            st.session_state["dataset_metadata"] = meta
+            analyzer = QualityAnalyzer()
+            st.session_state["diagnosis_results"] = analyzer.analyze(df, dataset_name="customer_churn_dirty.csv")
+            st.session_state["quality_scores"] = st.session_state["diagnosis_results"]["quality_scores"]
+            st.session_state["cleaning_history"] = []
+            st.session_state["ai_summary_cache"] = None
+            st.rerun()
 
-with col1:
-    st.markdown("""
-    ### 🔍 Automated Diagnostics
-    - **Missing Value Profiling**: Column-level null counts, percentage impact, and sparsity indexing.
-    - **Duplicate Records**: Exact row duplication and subset identification.
-    - **Statistical Outliers**: Interquartile Range (IQR 1.5x) detection with lower/upper thresholds.
-    - **Data Type Inference**: Discovers numeric or datetime fields disguised as strings.
-    """)
+st.markdown("<br>", unsafe_allow_html=True)
 
-with col2:
-    st.markdown("""
-    ### 📊 Explainable Scoring
-    - **Completeness**: Evaluates non-null data ratio across all fields.
-    - **Uniqueness**: Quantifies degree of distinct, non-redundant rows.
-    - **Validity**: Detects invalid negative values and string placeholder tokens (`?`, `NULL`).
-    - **Consistency**: Evaluates formatting uniformity and casing discrepancies.
-    """)
+# 3-Column SaaS Feature Showcase Grid
+f_col1, f_col2, f_col3 = st.columns(3)
 
-with col3:
-    st.markdown("""
-    ### 🤖 Gen AI Assistant & Studio
-    - **Contextual Reasoning**: Grounded in actual statistical facts without hallucinations.
-    - **Interactive Chat**: Ask questions regarding ML readiness, risk analysis, and cleaning steps.
-    - **Non-Destructive Cleaning**: Imputation, Winsorization, and deduplication with undo audit trail.
-    - **Audit Reports**: Instant export to PDF, JSON, and cleaned CSV/Excel.
-    """)
+with f_col1:
+    st.markdown(
+        """
+        <div class="feature-card">
+            <div class="feature-icon-wrapper">🔍</div>
+            <h4>Automated 10-Point Diagnosis</h4>
+            <p>
+                Robust detection of missing value sparsity, exact and subset duplicate records, 
+                Tukey IQR (1.5x) statistical anomalies, sentinel tokens (<code>?</code>, <code>null</code>, <code>unknown</code>), 
+                and schema mismatches like dirty currencies or dates stored as strings.
+            </p>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
 
-st.markdown("---")
+with f_col2:
+    st.markdown(
+        """
+        <div class="feature-card">
+            <div class="feature-icon-wrapper">⚖️</div>
+            <h4>Explainable 4D Quality Scoring</h4>
+            <p>
+                Transparent, deterministic scoring across four essential dimensions: 
+                <strong>Completeness</strong>, <strong>Uniqueness</strong>, <strong>Validity</strong>, and <strong>Consistency</strong>. 
+                Includes configurable formula weights, grade classifications (A to D), and penalty deductions.
+            </p>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
 
-# Architecture Workflow Section
+with f_col3:
+    st.markdown(
+        """
+        <div class="feature-card">
+            <div class="feature-icon-wrapper">🤖</div>
+            <h4>Gen AI Remediation & Q&A</h4>
+            <p>
+                Context-grounded LLM reasoning that explains root causes, evaluates ML model readiness, 
+                and guides non-destructive data remediation in the interactive studio. Includes full offline heuristic 
+                fallback with prompt-injection defense.
+            </p>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+st.markdown("<br><hr style='border-color:rgba(56,189,248,0.12);'><br>", unsafe_allow_html=True)
+
+# End-to-End Processing Architecture
 st.subheader("System Architecture & Processing Pipeline")
-st.markdown("""
-```
-┌─────────────────────┐      ┌─────────────────────────┐      ┌──────────────────────────┐
-│  Dataset Ingestion  │ ───► │ 10-Point Statistical    │ ───► │  Explainable 4D Quality  │
-│  (CSV, TSV, XLSX)   │      │ Profiling & IQR Outliers│      │  Scoring Engine (0-100)  │
-└─────────────────────┘      └─────────────────────────┘      └──────────────────────────┘
-                                                                           │
-                                                                           ▼
-┌─────────────────────┐      ┌─────────────────────────┐      ┌──────────────────────────┐
-│ Multi-Format Audit  │ ◄─── │ Non-Destructive Cleaning│ ◄─── │ Generative AI Diagnostic │
-│ (PDF, JSON, CSV/XLS)│      │ Studio (Audit & Undo)   │      │ Assistant & Q&A Chatbot  │
-└─────────────────────┘      └─────────────────────────┘      └──────────────────────────┘
-```
-""")
-
-col_w1, col_w2, col_w3 = st.columns(3)
-with col_w1:
-    st.markdown("""
-    **Phase 1: Ingestion & Validation**
-    Robust decoding with multi-encoding support (UTF-8, Latin-1, CP1252), delimiter sniffing, file size bounds, and structure validation.
-    """)
-with col_w2:
-    st.markdown("""
-    **Phase 2: Comprehensive Diagnostics**
-    Computes distribution skewness, quartile ranges, IQR bounds, high-cardinality candidate keys, constant columns, and invalid tokens.
-    """)
-with col_w3:
-    st.markdown("""
-    **Phase 3: Remediation & Reporting**
-    Empowers users with interactive Gen AI Q&A, audited data transformations, and full audit report generation for compliance and ML workflows.
-    """)
+st.markdown(
+    """
+    <div style="background:linear-gradient(145deg, rgba(15,23,42,0.95), rgba(30,41,59,0.4));padding:1.5rem 1.8rem;border:1px solid rgba(56,189,248,0.15);border-radius:12px;margin-bottom:1.8rem;">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(180px, 1fr));gap:1rem;text-align:center;">
+            <div style="padding:1rem;background:rgba(11,17,32,0.7);border-radius:8px;border:1px solid rgba(56,189,248,0.15);">
+                <div style="font-size:1.4rem;">📥</div>
+                <div style="font-size:0.85rem;font-weight:700;color:#F8FAFC;margin-top:0.3rem;">1. Ingest & Validate</div>
+                <div style="font-size:0.75rem;color:#94A3B8;margin-top:0.2rem;">CSV, TSV, XLSX format & encoding sniffing</div>
+            </div>
+            <div style="padding:1rem;background:rgba(11,17,32,0.7);border-radius:8px;border:1px solid rgba(56,189,248,0.15);">
+                <div style="font-size:1.4rem;">🔬</div>
+                <div style="font-size:0.85rem;font-weight:700;color:#F8FAFC;margin-top:0.3rem;">2. 10-Point Diagnosis</div>
+                <div style="font-size:0.75rem;color:#94A3B8;margin-top:0.2rem;">IQR outliers, nulls, duplicates & types</div>
+            </div>
+            <div style="padding:1rem;background:rgba(11,17,32,0.7);border-radius:8px;border:1px solid rgba(56,189,248,0.15);">
+                <div style="font-size:1.4rem;">📊</div>
+                <div style="font-size:0.85rem;font-weight:700;color:#F8FAFC;margin-top:0.3rem;">3. Visual Analytics</div>
+                <div style="font-size:0.75rem;color:#94A3B8;margin-top:0.2rem;">Plotly gauges, distributions & heatmaps</div>
+            </div>
+            <div style="padding:1rem;background:rgba(11,17,32,0.7);border-radius:8px;border:1px solid rgba(56,189,248,0.15);">
+                <div style="font-size:1.4rem;">🤖</div>
+                <div style="font-size:0.85rem;font-weight:700;color:#F8FAFC;margin-top:0.3rem;">4. Generative AI</div>
+                <div style="font-size:0.75rem;color:#94A3B8;margin-top:0.2rem;">Contextual diagnosis & chat Q&A</div>
+            </div>
+            <div style="padding:1rem;background:rgba(11,17,32,0.7);border-radius:8px;border:1px solid rgba(56,189,248,0.15);">
+                <div style="font-size:1.4rem;">🧹</div>
+                <div style="font-size:0.85rem;font-weight:700;color:#F8FAFC;margin-top:0.3rem;">5. Cleaning Studio</div>
+                <div style="font-size:0.75rem;color:#94A3B8;margin-top:0.2rem;">Audited transformations with undo</div>
+            </div>
+            <div style="padding:1rem;background:rgba(11,17,32,0.7);border-radius:8px;border:1px solid rgba(56,189,248,0.15);">
+                <div style="font-size:1.4rem;">📑</div>
+                <div style="font-size:0.85rem;font-weight:700;color:#F8FAFC;margin-top:0.3rem;">6. Audit Reports</div>
+                <div style="font-size:0.75rem;color:#94A3B8;margin-top:0.2rem;">PDF, JSON & cleaned CSV/XLS exports</div>
+            </div>
+        </div>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
 
 render_footer()

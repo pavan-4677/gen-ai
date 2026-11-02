@@ -29,3 +29,4 @@ CustomerID,Name,Age,Gender,AnnualIncome,SpendingScore,Education,City,SignupDate,
 1026,Henry Adams,58,Male,130000,25,PhD,San Francisco,2019-03-30,Active
 1027,Evelyn Baker,32,Female,69000,71,Master,Denver,2022-12-14,Active
 1028,Mason Nelson,40,Male,84000,49,Bachelor,Miami,2021-09-22,Active
+

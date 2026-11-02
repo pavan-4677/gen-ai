@@ -77,3 +77,4 @@ def test_load_bytes_io():
     df, meta = loader.load_dataset(bio)
     assert len(df) == 2
     assert meta["total_columns"] == 2
+

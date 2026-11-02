@@ -130,3 +130,4 @@ class DataProfiler:
                 profile["top_values"] = []
 
         return profile
+

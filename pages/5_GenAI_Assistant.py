@@ -5,7 +5,7 @@ root cause analysis, ML readiness risk evaluation, and interactive dataset Q&A c
 """
 
 import streamlit as st
-from src.utils import init_session_state, load_css, render_hero, render_footer
+from src.utils import init_session_state, load_css, render_hero, render_footer, render_sidebar
 from src.ai_service import AIService
 from src.quality_analyzer import QualityAnalyzer
 
@@ -17,16 +17,24 @@ st.set_page_config(
 
 init_session_state()
 load_css()
+render_sidebar(current_step=4)
 
 render_hero(
     title="Generative AI Dataset Assistant",
     subtitle="Context-grounded LLM synthesis for anomaly explanations, root cause discovery, and ML readiness counseling.",
-    badge="Step 4 • Generative AI"
+    badge="Step 4 • Generative AI Reasoning"
 )
 
 if st.session_state.get("df_raw") is None:
-    st.warning("⚠️ No dataset loaded. Please upload a dataset to enable the Generative AI Assistant.")
-    if st.button("📂 Go to Dataset Upload"):
+    st.markdown(
+        """
+        <div class="warning-box">
+            <strong>No Dataset in Memory:</strong> Please upload a dataset to enable the Generative AI Assistant.
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+    if st.button("📂 Go to Dataset Upload", type="primary"):
         st.switch_page("pages/2_Upload_Dataset.py")
     st.stop()
 
@@ -48,24 +56,37 @@ ai_service = AIService(
     base_url=settings.get("openai_base_url", "https://api.openai.com/v1")
 )
 
-# Mode status banner
+# Engine connection banner
 if ai_service.is_api_configured():
-    st.success(f"🟢 **Live LLM Connected**: Powered by `{ai_service.model}` via `{ai_service.base_url}`. Generative completions active.")
+    st.markdown(
+        f"""
+        <div class="success-box">
+            <strong>🟢 Live LLM Active:</strong> Connected to <code>{ai_service.model}</code> via <code>{ai_service.base_url}</code>. 
+            Structured JSON summaries are being dispatched for dynamic natural language completions.
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
 else:
-    st.info(
-        "🔵 **Deterministic Diagnostic Engine Active (Offline Mode)**: "
-        "No external API key provided. The assistant is operating using internal expert heuristic rules based strictly "
-        "on the actual diagnosed metrics. You can configure an OpenAI API key in **Settings** anytime."
+    st.markdown(
+        """
+        <div class="info-box">
+            <strong>🔵 Heuristic Diagnostic Engine Active (Offline Mode):</strong> 
+            No OpenAI API key detected. The assistant is operating using its internal expert diagnostic engine based 
+            strictly on the actual diagnosed metrics. You can connect a live OpenAI API key in <strong>Settings</strong> at any time.
+        </div>
+        """,
+        unsafe_allow_html=True
     )
 
-tab_report, tab_chat = st.tabs(["📋 Auto-Generated Comprehensive AI Report", "💬 Interactive Dataset Q&A Chat"])
+tab_report, tab_chat = st.tabs(["📋 Comprehensive AI Diagnostic Report", "💬 Interactive Dataset Q&A Chat"])
 
 # 1. Comprehensive AI Report Tab
 with tab_report:
-    st.markdown("### Generative Data Quality Diagnosis & Remediation Strategy")
+    st.subheader("Generative Data Quality Health Assessment")
     st.caption("Synthesized automatically from dataset profiling metrics, IQR outliers, and consistency checks.")
 
-    col_btn, _ = st.columns([1, 3])
+    col_btn, _ = st.columns([1.2, 3])
     with col_btn:
         regen_report = st.button("🔄 Generate / Refresh AI Analysis", type="primary", use_container_width=True)
 
@@ -74,16 +95,16 @@ with tab_report:
             report_text = ai_service.generate_comprehensive_explanation(diagnosis)
             st.session_state["ai_summary_cache"] = report_text
 
-    st.markdown("---")
+    st.markdown("<hr style='border-color:rgba(56,189,248,0.12);'>", unsafe_allow_html=True)
     st.markdown(st.session_state.get("ai_summary_cache", ""))
 
 # 2. Interactive Dataset Q&A Chat Tab
 with tab_chat:
-    st.markdown("### Ask Questions About Your Dataset")
-    st.caption("Ask questions about detected anomalies, missing data, ML feasibility, or recommended preprocessing steps.")
+    st.subheader("Ask Contextual Questions About Your Dataset")
+    st.caption("Query detected anomalies, missing data, ML feasibility, or recommended preprocessing steps.")
 
     # Suggested quick-question prompts
-    st.markdown("**Suggested Questions (Click to Ask):**")
+    st.markdown("**Suggested Prompts (Click to Query):**")
     prompt_cols = st.columns(3)
     preset_query = None
 
@@ -105,7 +126,7 @@ with tab_chat:
         if st.button("Explain this dataset in simple English", use_container_width=True):
             preset_query = "Explain this dataset in simple English"
 
-    st.markdown("---")
+    st.markdown("<hr style='border-color:rgba(56,189,248,0.12);'>", unsafe_allow_html=True)
 
     # Render Chat History
     chat_container = st.container()
@@ -113,7 +134,7 @@ with tab_chat:
         if not st.session_state["ai_chat_history"]:
             st.chat_message("assistant").write(
                 f"Hello! I have reviewed the diagnostics for **'{st.session_state.get('active_dataset_name')}'**. "
-                f"Overall Data Quality Score is **{diagnosis['quality_scores']['overall_score']}/100**. "
+                f"Overall Data Quality Score is **{diagnosis['quality_scores']['overall_score']}/100** ({diagnosis['quality_scores']['grade']}). "
                 "How can I assist you with diagnosing or preparing this data?"
             )
         for msg in st.session_state["ai_chat_history"]:
@@ -139,6 +160,7 @@ with tab_chat:
             st.chat_message("assistant").write(ai_reply)
 
     if st.session_state["ai_chat_history"]:
+        st.markdown("<br>", unsafe_allow_html=True)
         if st.button("🗑️ Clear Conversation History"):
             st.session_state["ai_chat_history"] = []
             st.rerun()

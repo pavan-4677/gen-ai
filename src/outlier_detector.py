@@ -152,3 +152,4 @@ class OutlierDetector:
         """Extract slice of DataFrame containing the outlier records for review."""
         valid_indices = [idx for idx in outlier_indices if idx in df.index]
         return df.loc[valid_indices]
+

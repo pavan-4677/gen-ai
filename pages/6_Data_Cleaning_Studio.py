@@ -9,7 +9,7 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 
-from src.utils import init_session_state, load_css, render_hero, render_footer
+from src.utils import init_session_state, load_css, render_hero, render_footer, render_sidebar
 from src.data_cleaner import DataCleaner
 from src.outlier_detector import OutlierDetector
 from src.quality_analyzer import QualityAnalyzer
@@ -22,16 +22,24 @@ st.set_page_config(
 
 init_session_state()
 load_css()
+render_sidebar(current_step=5)
 
 render_hero(
     title="Data Cleaning & Remediation Studio",
-    subtitle="Interactive non-destructive transformations with strict confirmation, before/after diffs, and audit trail.",
-    badge="Step 5 • Data Remediation"
+    subtitle="Interactive non-destructive transformations with granular confirmation, before/after diffs, and complete undo audit trail.",
+    badge="Step 5 • Interactive Data Remediation"
 )
 
 if st.session_state.get("df_raw") is None:
-    st.warning("⚠️ No dataset loaded. Please upload a dataset to begin cleaning.")
-    if st.button("📂 Go to Dataset Upload"):
+    st.markdown(
+        """
+        <div class="warning-box">
+            <strong>No Dataset in Memory:</strong> Please upload a dataset to begin interactive remediation.
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+    if st.button("📂 Go to Dataset Upload", type="primary"):
         st.switch_page("pages/2_Upload_Dataset.py")
     st.stop()
 
@@ -53,48 +61,45 @@ raw_nulls = int(df_raw.isna().sum().sum())
 cur_nulls = int(df_clean.isna().sum().sum())
 
 with col_s1:
-    st.metric("Cleaned Rows", f"{cur_rows:,}", delta=f"{cur_rows - raw_rows} rows" if cur_rows != raw_rows else "No change")
+    st.metric("Cleaned Records", f"{cur_rows:,}", delta=f"{cur_rows - raw_rows} rows" if cur_rows != raw_rows else "No change")
 with col_s2:
-    st.metric("Cleaned Columns", cur_cols, delta=f"{cur_cols - raw_cols} cols" if cur_cols != raw_cols else "No change")
+    st.metric("Cleaned Attributes", cur_cols, delta=f"{cur_cols - raw_cols} cols" if cur_cols != raw_cols else "No change")
 with col_s3:
     st.metric("Remaining Nulls", f"{cur_nulls:,}", delta=f"{cur_nulls - raw_nulls} nulls" if cur_nulls != raw_nulls else "No change", delta_color="inverse")
 with col_s4:
-    st.metric("Steps Applied", len(st.session_state["cleaning_history"]))
+    st.metric("Remediations Applied", len(st.session_state["cleaning_history"]))
 with col_s5:
     col_u1, col_u2 = st.columns(2)
     with col_u1:
-        if st.button("↩️ Undo", help="Revert the most recent cleaning operation", disabled=len(st.session_state["cleaning_history"]) == 0):
+        if st.button("↩️ Undo", help="Revert the most recent cleaning operation", disabled=len(st.session_state["cleaning_history"]) == 0, use_container_width=True):
             history = st.session_state["cleaning_history"]
             if history:
                 history.pop()  # Remove last operation record
-                # Replay history from df_raw to reconstruct clean state accurately
                 reconstructed = df_raw.copy()
-                # For safety, if history is now empty, reset
                 if not history:
                     st.session_state["df_clean"] = reconstructed
                 else:
-                    # Restore previous snapshot
                     st.session_state["df_clean"] = history[-1].get("snapshot", reconstructed).copy()
                 st.session_state["ai_summary_cache"] = None
                 st.success("Reverted last cleaning operation.")
                 st.rerun()
 
     with col_u2:
-        if st.button("🔄 Reset", help="Reset all changes back to raw dataset"):
+        if st.button("🔄 Reset", help="Reset all changes back to raw dataset", use_container_width=True):
             st.session_state["df_clean"] = df_raw.copy()
             st.session_state["cleaning_history"] = []
             st.session_state["ai_summary_cache"] = None
             st.warning("Dataset reset to original raw state.")
             st.rerun()
 
-st.markdown("---")
+st.markdown("<br><hr style='border-color:rgba(56,189,248,0.12);'><br>", unsafe_allow_html=True)
 
 # Cleaning Operations Tabs
 tab_missing, tab_dup, tab_outlier, tab_types, tab_text, tab_drop = st.tabs([
     "❓ Missing Values",
     "👥 Duplicate Records",
     "📈 Outliers Treatment",
-    "🏷️ Type Casting",
+    "🏷️ Schema Casting",
     "🔠 Text & Formatting",
     "🗑️ Drop Columns"
 ])
@@ -105,7 +110,6 @@ def apply_transformation(new_df: pd.DataFrame, record: dict):
     record["snapshot"] = new_df.copy()
     st.session_state["cleaning_history"].append(record)
     st.session_state["df_clean"] = new_df
-    # Invalidate AI summary cache so it reflects the updated clean state
     st.session_state["ai_summary_cache"] = None
     st.success(f"Executed: {record['action']} — {record['details']}")
     st.rerun()
@@ -113,12 +117,12 @@ def apply_transformation(new_df: pd.DataFrame, record: dict):
 # 1. Missing Values Tab
 with tab_missing:
     st.subheader("Missing Value Remediation")
-    op_type = st.radio("Choose operation:", ["Impute Missing Values", "Drop Rows with Missing Values", "Drop Columns Exceeding Threshold"], horizontal=True)
+    op_type = st.radio("Choose operation mode:", ["Impute Missing Values", "Drop Rows with Missing Values", "Drop Columns Exceeding Threshold"], horizontal=True)
 
     if op_type == "Impute Missing Values":
         cols_with_null = df_clean.columns[df_clean.isna().any()].tolist()
         if not cols_with_null:
-            st.success("No columns currently contain missing values.")
+            st.markdown('<div class="success-box"><strong>Zero Nulls:</strong> No columns currently contain missing values.</div>', unsafe_allow_html=True)
         else:
             col_target = st.selectbox("Select column to impute:", cols_with_null)
             is_num = pd.api.types.is_numeric_dtype(df_clean[col_target])
@@ -134,7 +138,7 @@ with tab_missing:
                         st.error("Please enter a valid numeric value for a numerical column.")
 
             null_count = int(df_clean[col_target].isna().sum())
-            st.caption(f"Target column '{col_target}' has **{null_count} null cells**.")
+            st.caption(f"Target column '{col_target}' contains **{null_count} null cells**.")
 
             if st.button(f"Apply {strat.capitalize()} Imputation to '{col_target}'", type="primary"):
                 try:
@@ -149,7 +153,7 @@ with tab_missing:
         
         subset = subset_cols if subset_cols else None
         preview_drop_count = len(df_clean) - len(df_clean.dropna(subset=subset, how=mode))
-        st.warning(f"This will drop **{preview_drop_count} rows** from the dataset.")
+        st.markdown(f'<div class="warning-box"><strong>Warning:</strong> This operation will drop <strong>{preview_drop_count} rows</strong> from the active cleaned dataset.</div>', unsafe_allow_html=True)
         
         if st.button("Confirm: Drop Missing Rows", type="primary"):
             new_df, rec = cleaner.drop_missing_rows(df_clean, columns=subset_cols, how=mode)
@@ -159,7 +163,7 @@ with tab_missing:
         thresh = st.slider("Missing percentage threshold to drop column (%):", min_value=10, max_value=90, value=50, step=5)
         exceeding = [c for c in df_clean.columns if (df_clean[c].isna().sum() / len(df_clean)) * 100 >= thresh]
         if exceeding:
-            st.warning(f"Columns matching criteria (>= {thresh}% null): `{exceeding}`")
+            st.markdown(f'<div class="warning-box">Columns exceeding {thresh}% missing threshold: <code>{exceeding}</code></div>', unsafe_allow_html=True)
             if st.button(f"Confirm: Drop {len(exceeding)} Column(s)", type="primary"):
                 new_df, rec = cleaner.drop_missing_columns(df_clean, threshold_pct=float(thresh))
                 apply_transformation(new_df, rec)
@@ -180,7 +184,7 @@ with tab_dup:
             new_df, rec = cleaner.remove_duplicates(df_clean, subset=subset_dup if subset_dup else None, keep=keep_opt)
             apply_transformation(new_df, rec)
     else:
-        st.success("No duplicate records exist in the current cleaned dataset.")
+        st.markdown('<div class="success-box"><strong>Zero Duplicates:</strong> All records are distinct.</div>', unsafe_allow_html=True)
 
 # 3. Outliers Tab
 with tab_outlier:
@@ -222,7 +226,7 @@ with tab_outlier:
                     new_df, rec = cleaner.remove_outliers_iqr(df_clean, outlier_col, multiplier=k_val)
                     apply_transformation(new_df, rec)
         else:
-            st.success(f"No statistical outliers detected in '{outlier_col}' with multiplier {k_val}.")
+            st.markdown(f'<div class="success-box">No statistical outliers detected in <code>{outlier_col}</code> with multiplier {k_val}.</div>', unsafe_allow_html=True)
 
 # 4. Data Types Tab
 with tab_types:
@@ -277,12 +281,12 @@ with tab_drop:
     st.subheader("Drop Unnecessary Columns")
     cols_to_remove = st.multiselect("Select columns to permanently drop:", df_clean.columns.tolist())
     if cols_to_remove:
-        st.warning(f"Will delete columns: `{cols_to_remove}`")
+        st.markdown(f'<div class="warning-box">Will delete columns: <code>{cols_to_remove}</code></div>', unsafe_allow_html=True)
         if st.button(f"Confirm: Drop {len(cols_to_remove)} Column(s)", type="primary"):
             new_df, rec = cleaner.drop_columns(df_clean, cols_to_remove)
             apply_transformation(new_df, rec)
 
-st.markdown("---")
+st.markdown("<br><hr style='border-color:rgba(56,189,248,0.12);'><br>", unsafe_allow_html=True)
 
 # Audit Trail & Preview
 st.subheader("📋 Cleaning Audit Trail & Transformation History")
@@ -291,7 +295,7 @@ if history:
     history_display = [
         {
             "Step": i + 1,
-            "Time": h["timestamp"],
+            "Timestamp": h["timestamp"],
             "Action": h["action"],
             "Details": h["details"],
             "Rows Delta": h["rows_delta"],

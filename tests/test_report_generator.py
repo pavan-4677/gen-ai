@@ -81,3 +81,4 @@ def test_export_excel():
     excel_bytes = ReportGenerator.export_excel(df)
     assert isinstance(excel_bytes, bytes)
     assert len(excel_bytes) > 100
+

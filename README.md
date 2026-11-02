@@ -347,3 +347,4 @@ python -m pytest tests -v
 - **Degree**: Bachelor of Technology (B.Tech) in Artificial Intelligence & Machine Learning
 - **Domain**: Generative AI, Machine Learning, Data Quality Engineering
 - **Supervision & Guidance**: Department of Artificial Intelligence and Machine Learning
+

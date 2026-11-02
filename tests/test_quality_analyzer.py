@@ -44,3 +44,4 @@ def test_full_analysis_pipeline(dirty_sample_df):
     # Check issues compiled
     assert res["total_issues_count"] > 0
     assert "quality_scores" in res
+

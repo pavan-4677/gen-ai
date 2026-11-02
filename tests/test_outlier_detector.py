@@ -57,3 +57,4 @@ def test_zscore_detection(outlier_dataframe):
     detector = OutlierDetector(z_threshold=2.0)
     res = detector.detect_outliers_zscore(outlier_dataframe, columns=["salary"])
     assert res["column_reports"]["salary"]["outlier_count"] >= 1
+

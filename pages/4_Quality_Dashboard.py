@@ -10,7 +10,7 @@ import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
 
-from src.utils import init_session_state, load_css, render_hero, render_footer, get_score_badge
+from src.utils import init_session_state, load_css, render_hero, render_footer, render_sidebar, apply_plotly_theme
 from src.quality_analyzer import QualityAnalyzer
 
 st.set_page_config(
@@ -21,16 +21,24 @@ st.set_page_config(
 
 init_session_state()
 load_css()
+render_sidebar(current_step=3)
 
 render_hero(
     title="Data Quality Analytics Dashboard",
-    subtitle="Interactive visual diagnostics and transparent scoring computed on the active dataset.",
-    badge="Step 3 • Visual Analytics"
+    subtitle="Interactive visual diagnostics, statistical distribution charts, and transparent 4D scoring.",
+    badge="Step 3 • Visual Analytics & KPIs"
 )
 
 if st.session_state.get("df_raw") is None:
-    st.warning("⚠️ No dataset currently loaded. Please upload a dataset to view the quality dashboard.")
-    if st.button("📂 Go to Dataset Upload"):
+    st.markdown(
+        """
+        <div class="warning-box">
+            <strong>No Dataset in Memory:</strong> Please upload a dataset to view the interactive quality dashboard.
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+    if st.button("📂 Go to Dataset Upload", type="primary"):
         st.switch_page("pages/2_Upload_Dataset.py")
     st.stop()
 
@@ -50,31 +58,30 @@ status = scores.get("status", "N/A")
 dims = scores.get("dimensions", {})
 
 # Top Section: Overall Score Gauge & 4 Dimensions
-col_gauge, col_dims = st.columns([1, 2])
+col_gauge, col_dims = st.columns([1.1, 1.9])
 
 with col_gauge:
-    # Gauge Chart for Overall Score
     fig_gauge = go.Figure(go.Indicator(
         mode="gauge+number",
         value=overall_score,
         domain={'x': [0, 1], 'y': [0, 1]},
-        title={'text': f"Overall Quality Score<br><span style='font-size:0.8em;color:#94A3B8'>{grade}</span>", 'font': {'size': 18, 'color': '#F8FAFC'}},
-        number={'suffix': "/100", 'font': {'color': '#38BDF8', 'size': 32}},
+        title={'text': f"Overall Quality Score<br><span style='font-size:0.85em;color:#38BDF8;'>Grade: {grade}</span>", 'font': {'size': 17, 'color': '#F8FAFC', 'family': 'Plus Jakarta Sans'}},
+        number={'suffix': "/100", 'font': {'color': '#38BDF8', 'size': 34, 'family': 'Plus Jakarta Sans'}},
         gauge={
             'axis': {'range': [0, 100], 'tickwidth': 1, 'tickcolor': "#475569"},
-            'bar': {'color': "#38BDF8"},
-            'bgcolor': "#1E293B",
+            'bar': {'color': "#38BDF8", 'thickness': 0.8},
+            'bgcolor': "#0F172A",
             'borderwidth': 1,
-            'bordercolor': "#334155",
+            'bordercolor': "rgba(56, 189, 248, 0.2)",
             'steps': [
-                {'range': [0, 50], 'color': 'rgba(244, 63, 94, 0.25)'},
-                {'range': [50, 75], 'color': 'rgba(245, 158, 11, 0.25)'},
-                {'range': [75, 90], 'color': 'rgba(56, 189, 248, 0.25)'},
-                {'range': [90, 100], 'color': 'rgba(16, 185, 129, 0.25)'}
+                {'range': [0, 50], 'color': 'rgba(244, 63, 94, 0.2)'},
+                {'range': [50, 75], 'color': 'rgba(245, 158, 11, 0.2)'},
+                {'range': [75, 90], 'color': 'rgba(56, 189, 248, 0.2)'},
+                {'range': [90, 100], 'color': 'rgba(16, 185, 129, 0.2)'}
             ],
             'threshold': {
                 'line': {'color': "#10B981", 'width': 3},
-                'thickness': 0.75,
+                'thickness': 0.8,
                 'value': 90
             }
         }
@@ -82,13 +89,13 @@ with col_gauge:
     fig_gauge.update_layout(
         paper_bgcolor="rgba(0,0,0,0)",
         plot_bgcolor="rgba(0,0,0,0)",
-        height=260,
-        margin=dict(l=20, r=20, t=40, b=20)
+        height=280,
+        margin=dict(l=20, r=20, t=50, b=20)
     )
     st.plotly_chart(fig_gauge, use_container_width=True)
 
 with col_dims:
-    st.markdown("#### Quality Dimensions Breakdown")
+    st.markdown("#### Four Quality Dimensions Breakdown")
     c1, c2 = st.columns(2)
     with c1:
         comp_score = dims.get('completeness', {}).get('score', 0)
@@ -101,13 +108,12 @@ with col_dims:
         st.metric("Validity Score", f"{val_score}%", f"{dims.get('validity', {}).get('invalid_values_count', 0)} invalid cells", delta_color="normal" if val_score >= 90 else "inverse")
         st.metric("Consistency Score", f"{cons_score}%", f"{dims.get('consistency', {}).get('inconsistency_points', 0)} penalty points", delta_color="normal" if cons_score >= 90 else "inverse")
 
-st.markdown("---")
+st.markdown("<br><hr style='border-color:rgba(56,189,248,0.12);'><br>", unsafe_allow_html=True)
 
 # Chart Row 1: Missing Values & Outlier Frequencies
 row1_col1, row1_col2 = st.columns(2)
 
 with row1_col1:
-    st.markdown("### Missing Values by Column")
     missing_data = diagnosis["missing_analysis"].get("column_breakdown", [])
     if missing_data:
         m_df = pd.DataFrame(missing_data)
@@ -117,22 +123,22 @@ with row1_col1:
             y="missing_percentage",
             color="severity",
             color_discrete_map={"High": "#F43F5E", "Medium": "#F59E0B", "Low": "#38BDF8"},
-            labels={"missing_percentage": "Missing Ratio (%)", "column": "Column"},
-            title="Null Value Sparsity per Feature"
+            labels={"missing_percentage": "Null Ratio (%)", "column": "Column"},
+            title="Missing Values Sparsity by Column"
         )
-        fig_miss.update_layout(
-            template="plotly_dark",
-            paper_bgcolor="#182234",
-            plot_bgcolor="#111827",
-            height=320,
-            margin=dict(l=20, r=20, t=40, b=20)
-        )
+        apply_plotly_theme(fig_miss, height=330, title="Missing Value Sparsity by Column")
         st.plotly_chart(fig_miss, use_container_width=True)
     else:
-        st.info("No missing values detected. All columns have 100% completeness.")
+        st.markdown(
+            """
+            <div class="success-box">
+                <strong>100% Completeness:</strong> Zero missing values detected across attributes.
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
 
 with row1_col2:
-    st.markdown("### Statistical Outliers (IQR Method)")
     outlier_reports = diagnosis["outlier_analysis"].get("column_reports", {})
     out_data = [
         {"column": col, "outlier_count": rep["outlier_count"], "outlier_pct": rep["outlier_pct"]}
@@ -147,26 +153,26 @@ with row1_col2:
             hover_data=["outlier_pct"],
             color_discrete_sequence=["#8B5CF6"],
             labels={"outlier_count": "Outliers Detected", "column": "Column"},
-            title="IQR 1.5x Anomaly Count per Numerical Feature"
+            title="Statistical Outliers (Tukey IQR 1.5x Method)"
         )
-        fig_out.update_layout(
-            template="plotly_dark",
-            paper_bgcolor="#182234",
-            plot_bgcolor="#111827",
-            height=320,
-            margin=dict(l=20, r=20, t=40, b=20)
-        )
+        apply_plotly_theme(fig_out, height=330, title="Statistical Outliers Count per Feature (IQR 1.5x)")
         st.plotly_chart(fig_out, use_container_width=True)
     else:
-        st.info("No statistical outliers detected in numerical columns.")
+        st.markdown(
+            """
+            <div class="success-box">
+                <strong>No Extreme Outliers:</strong> No numerical values fall outside standard Tukey IQR thresholds.
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
 
-st.markdown("---")
+st.markdown("<br>", unsafe_allow_html=True)
 
 # Chart Row 2: Data Type Composition & Correlation Heatmap
 row2_col1, row2_col2 = st.columns(2)
 
 with row2_col1:
-    st.markdown("### Attribute Type Distribution")
     prof_overview = diagnosis["profile"]["overview"]
     type_counts = {
         "Numerical": prof_overview.get("numerical_columns_count", 0),
@@ -182,19 +188,12 @@ with row2_col1:
             values="Count",
             hole=0.45,
             color_discrete_sequence=["#38BDF8", "#6366F1", "#10B981", "#F59E0B"],
-            title="Dataset Column Types"
+            title="Dataset Schema Composition"
         )
-        fig_pie.update_layout(
-            template="plotly_dark",
-            paper_bgcolor="#182234",
-            plot_bgcolor="#111827",
-            height=320,
-            margin=dict(l=20, r=20, t=40, b=20)
-        )
+        apply_plotly_theme(fig_pie, height=330, title="Dataset Schema Composition")
         st.plotly_chart(fig_pie, use_container_width=True)
 
 with row2_col2:
-    st.markdown("### Correlation Heatmap (Numerical Features)")
     corr_matrix = diagnosis["profile"].get("correlation_matrix", {})
     if corr_matrix and len(corr_matrix) >= 2:
         corr_df = pd.DataFrame(corr_matrix)
@@ -205,20 +204,21 @@ with row2_col2:
             color_continuous_scale="RdBu_r",
             zmin=-1,
             zmax=1,
-            title="Pearson Correlation Coefficients"
+            title="Pearson Correlation Heatmap"
         )
-        fig_corr.update_layout(
-            template="plotly_dark",
-            paper_bgcolor="#182234",
-            plot_bgcolor="#111827",
-            height=320,
-            margin=dict(l=20, r=20, t=40, b=20)
-        )
+        apply_plotly_theme(fig_corr, height=330, title="Pearson Correlation Matrix")
         st.plotly_chart(fig_corr, use_container_width=True)
     else:
-        st.info("Insufficient numerical attributes (minimum 2 required) to construct correlation matrix.")
+        st.markdown(
+            """
+            <div class="info-box">
+                <strong>Correlation Notice:</strong> Minimum of 2 numerical attributes required to construct a Pearson correlation matrix.
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
 
-st.markdown("---")
+st.markdown("<br><hr style='border-color:rgba(56,189,248,0.12);'><br>", unsafe_allow_html=True)
 
 # Chart Row 3: Feature-Level Distribution Explorers
 st.subheader("🔍 Attribute Level Exploration")
@@ -228,23 +228,15 @@ with tab_num_exp:
     num_cols = prof_overview.get("numerical_column_names", [])
     if num_cols:
         col_chosen = st.selectbox("Select Numerical Attribute to Inspect Distribution:", num_cols)
-        series_clean = df[col_chosen].dropna()
-
         fig_dist = px.histogram(
             df,
             x=col_chosen,
             marginal="box",
-            nbins=25,
+            nbins=30,
             color_discrete_sequence=["#38BDF8"],
-            title=f"Distribution & Box Plot for '{col_chosen}'"
+            title=f"Distribution & Marginal Box Plot for '{col_chosen}'"
         )
-        fig_dist.update_layout(
-            template="plotly_dark",
-            paper_bgcolor="#182234",
-            plot_bgcolor="#111827",
-            height=360,
-            margin=dict(l=20, r=20, t=40, b=20)
-        )
+        apply_plotly_theme(fig_dist, height=360, title=f"Distribution & Marginal Box Plot for '{col_chosen}'")
         st.plotly_chart(fig_dist, use_container_width=True)
     else:
         st.info("No numerical attributes present in dataset.")
@@ -261,15 +253,9 @@ with tab_cat_exp:
             x=cat_chosen,
             y="Count",
             color_discrete_sequence=["#6366F1"],
-            title=f"Top Categories for '{cat_chosen}'"
+            title=f"Top 10 Most Frequent Categories for '{cat_chosen}'"
         )
-        fig_cat.update_layout(
-            template="plotly_dark",
-            paper_bgcolor="#182234",
-            plot_bgcolor="#111827",
-            height=360,
-            margin=dict(l=20, r=20, t=40, b=20)
-        )
+        apply_plotly_theme(fig_cat, height=360, title=f"Top 10 Categories in '{cat_chosen}'")
         st.plotly_chart(fig_cat, use_container_width=True)
     else:
         st.info("No categorical attributes present in dataset.")

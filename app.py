@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 # Load environment variables from .env if present
 load_dotenv()
 
-from src.utils import init_session_state, load_css, render_hero, render_footer
+from src.utils import init_session_state, load_css, render_hero, render_footer, render_sidebar
 from src.data_loader import DataLoader
 from src.quality_analyzer import QualityAnalyzer
 
@@ -23,6 +23,7 @@ st.set_page_config(
 
 init_session_state()
 load_css()
+render_sidebar(current_step=1)
 
 # Redirect immediately to Home page for consistent multi-page structure
 try:
@@ -51,3 +52,4 @@ Use the sidebar navigation to access all modules:
 """)
 
 render_footer()
+

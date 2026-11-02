@@ -163,3 +163,4 @@ class DataLoader:
             return f"{size_bytes / 1024:.2f} KB"
         else:
             return f"{size_bytes / (1024 * 1024):.2f} MB"
+

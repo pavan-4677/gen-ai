@@ -381,3 +381,4 @@ The dataset **'{summary.get('dataset_name')}'** comprises **{dims.get('rows', 0)
         # Strip potential instruction overrides or tags
         text = re.sub(r"[<>{}\\]", "", text)
         return text[:250].strip()
+

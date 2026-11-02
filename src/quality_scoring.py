@@ -270,3 +270,4 @@ class QualityScoringEngine:
             "summary_deductions": ["Dataset contains no rows or columns."],
             "limitations": "Empty dataset cannot be scored."
         }
+
