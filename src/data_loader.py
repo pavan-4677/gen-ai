@@ -147,7 +147,7 @@ class DataLoader:
             "total_columns": int(len(df.columns)),
             "column_names": [str(c) for c in df.columns],
             "dtypes": {str(c): str(t) for c, t in df.dtypes.items()},
-            "memory_usage_mb": round(mem_mb, 2),
+            "memory_usage_mb": round(mem_mb, 4) if mem_mb > 0 else 0.0001,
             "numerical_columns": [str(c) for c in df.select_dtypes(include=["number"]).columns],
             "categorical_columns": [str(c) for c in df.select_dtypes(include=["object", "category", "string"]).columns],
             "datetime_columns": [str(c) for c in df.select_dtypes(include=["datetime"]).columns],
