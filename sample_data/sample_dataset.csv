@@ -1,0 +1,31 @@
+CustomerID,Name,Age,Gender,AnnualIncome,SpendingScore,Education,City,SignupDate,AccountStatus
+1001,John Doe,28,Male,45000,65,Bachelor,New York,2023-01-15,Active
+1002,Jane Smith,34,Female,68000,72,Master,San Francisco,2022-11-20,Active
+1003,Michael Brown,45,MALE,85000,48,PhD,Chicago,2021-08-10,Active
+1004,Emily Davis,,Female,52000,81,Bachelor,Austin,2023-03-05,Pending
+1005,Robert Johnson,52,male,125000,32,Master,Seattle,2020-05-18,Active
+1006,David Wilson,29,Male,,58,Bachelor,New York,2023-06-12,Active
+1007,Sarah Miller,38, female ,74000,60,Master,Boston,2022-09-30,Active
+1008,James Taylor,41,Male,91000,44,PhD,Chicago,2021-12-04,Suspended
+1009,Patricia Anderson,63,Female,110000,28,Bachelor,Miami,2019-04-22,Active
+1010,Christopher Thomas,31,Male,62000,75,?,Denver,2023-02-17,Active
+1003,Michael Brown,45,MALE,85000,48,PhD,Chicago,2021-08-10,Active
+1011,Amanda Jackson,26,Female,39000,88,Bachelor,Austin,2023-07-01,Active
+1012,Matthew White,49,Male,96000,39,Master,San Francisco,2021-03-14,Active
+1013,Olivia Harris,33,Female,71000,64,Bachelor,Boston,2022-10-09,Active
+1014,Daniel Martin,150,Male,82000,50,PhD,New York,2022-01-25,Active
+1015,Sophia Clark,22,Female,31000,92,High School,Seattle,2023-08-19,Active
+1016,William Lewis,-5,Male,88000,45,Master,Chicago,2021-07-08,Active
+1017,Ava Robinson,37,Female,79000,,Bachelor,Miami,2022-04-16,Active
+1018,Alexander Walker,44,Male,980000,55,Master,San Francisco,2020-11-11,Active
+1019,Mia Hall,27,Female,48000,70,Bachelor,Denver,2023-05-03,Active
+1020,Ethan Allen,36,Male,NULL,61,Master,Austin,2022-08-27,Active
+1006,David Wilson,29,Male,,58,Bachelor,New York,2023-06-12,Active
+1021,Isabella Young,42,Female,89000,53,PhD,Boston,2021-10-05,Active
+1022,Benjamin King,30,Male,65000,68,Bachelor,Seattle,2023-04-11,Active
+1023,Charlotte Wright,55,Female,115000,30,Master,New York,2019-12-01,Inactive
+1024,Lucas Scott,35,Male,76000,62,Bachelor,Chicago,2022-06-19,Active
+1025,Harper Green,24,Female,35000,85,High School,Austin,2023-09-08,Active
+1026,Henry Adams,58,Male,130000,25,PhD,San Francisco,2019-03-30,Active
+1027,Evelyn Baker,32,Female,69000,71,Master,Denver,2022-12-14,Active
+1028,Mason Nelson,40,Male,84000,49,Bachelor,Miami,2021-09-22,Active

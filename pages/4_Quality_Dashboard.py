@@ -1,0 +1,277 @@
+"""
+Page 4: Data Quality Dashboard
+Interactive visual analytics using Plotly: Quality Score Gauge, Missing Values Bar Chart,
+IQR Outlier Frequency, Type Distribution, Correlation Heatmap, and Distribution Histograms.
+"""
+
+import streamlit as st
+import pandas as pd
+import numpy as np
+import plotly.express as px
+import plotly.graph_objects as go
+
+from src.utils import init_session_state, load_css, render_hero, render_footer, get_score_badge
+from src.quality_analyzer import QualityAnalyzer
+
+st.set_page_config(
+    page_title="Quality Dashboard | Dataset Quality Analysis",
+    page_icon="📊",
+    layout="wide"
+)
+
+init_session_state()
+load_css()
+
+render_hero(
+    title="Data Quality Analytics Dashboard",
+    subtitle="Interactive visual diagnostics and transparent scoring computed on the active dataset.",
+    badge="Step 3 • Visual Analytics"
+)
+
+if st.session_state.get("df_raw") is None:
+    st.warning("⚠️ No dataset currently loaded. Please upload a dataset to view the quality dashboard.")
+    if st.button("📂 Go to Dataset Upload"):
+        st.switch_page("pages/2_Upload_Dataset.py")
+    st.stop()
+
+df = st.session_state["df_raw"]
+diagnosis = st.session_state.get("diagnosis_results")
+
+if diagnosis is None:
+    analyzer = QualityAnalyzer()
+    diagnosis = analyzer.analyze(df, dataset_name=st.session_state.get("active_dataset_name", "Dataset"))
+    st.session_state["diagnosis_results"] = diagnosis
+    st.session_state["quality_scores"] = diagnosis["quality_scores"]
+
+scores = diagnosis["quality_scores"]
+overall_score = scores.get("overall_score", 0.0)
+grade = scores.get("grade", "N/A")
+status = scores.get("status", "N/A")
+dims = scores.get("dimensions", {})
+
+# Top Section: Overall Score Gauge & 4 Dimensions
+col_gauge, col_dims = st.columns([1, 2])
+
+with col_gauge:
+    # Gauge Chart for Overall Score
+    fig_gauge = go.Figure(go.Indicator(
+        mode="gauge+number",
+        value=overall_score,
+        domain={'x': [0, 1], 'y': [0, 1]},
+        title={'text': f"Overall Quality Score<br><span style='font-size:0.8em;color:#94A3B8'>{grade}</span>", 'font': {'size': 18, 'color': '#F8FAFC'}},
+        number={'suffix': "/100", 'font': {'color': '#38BDF8', 'size': 32}},
+        gauge={
+            'axis': {'range': [0, 100], 'tickwidth': 1, 'tickcolor': "#475569"},
+            'bar': {'color': "#38BDF8"},
+            'bgcolor': "#1E293B",
+            'borderwidth': 1,
+            'bordercolor': "#334155",
+            'steps': [
+                {'range': [0, 50], 'color': 'rgba(244, 63, 94, 0.25)'},
+                {'range': [50, 75], 'color': 'rgba(245, 158, 11, 0.25)'},
+                {'range': [75, 90], 'color': 'rgba(56, 189, 248, 0.25)'},
+                {'range': [90, 100], 'color': 'rgba(16, 185, 129, 0.25)'}
+            ],
+            'threshold': {
+                'line': {'color': "#10B981", 'width': 3},
+                'thickness': 0.75,
+                'value': 90
+            }
+        }
+    ))
+    fig_gauge.update_layout(
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
+        height=260,
+        margin=dict(l=20, r=20, t=40, b=20)
+    )
+    st.plotly_chart(fig_gauge, use_container_width=True)
+
+with col_dims:
+    st.markdown("#### Quality Dimensions Breakdown")
+    c1, c2 = st.columns(2)
+    with c1:
+        comp_score = dims.get('completeness', {}).get('score', 0)
+        uniq_score = dims.get('uniqueness', {}).get('score', 0)
+        st.metric("Completeness Score", f"{comp_score}%", f"{dims.get('completeness', {}).get('missing_cells', 0)} null cells", delta_color="normal" if comp_score >= 90 else "inverse")
+        st.metric("Uniqueness Score", f"{uniq_score}%", f"{dims.get('uniqueness', {}).get('duplicate_rows', 0)} duplicates", delta_color="normal" if uniq_score == 100 else "inverse")
+    with c2:
+        val_score = dims.get('validity', {}).get('score', 0)
+        cons_score = dims.get('consistency', {}).get('score', 0)
+        st.metric("Validity Score", f"{val_score}%", f"{dims.get('validity', {}).get('invalid_values_count', 0)} invalid cells", delta_color="normal" if val_score >= 90 else "inverse")
+        st.metric("Consistency Score", f"{cons_score}%", f"{dims.get('consistency', {}).get('inconsistency_points', 0)} penalty points", delta_color="normal" if cons_score >= 90 else "inverse")
+
+st.markdown("---")
+
+# Chart Row 1: Missing Values & Outlier Frequencies
+row1_col1, row1_col2 = st.columns(2)
+
+with row1_col1:
+    st.markdown("### Missing Values by Column")
+    missing_data = diagnosis["missing_analysis"].get("column_breakdown", [])
+    if missing_data:
+        m_df = pd.DataFrame(missing_data)
+        fig_miss = px.bar(
+            m_df,
+            x="column",
+            y="missing_percentage",
+            color="severity",
+            color_discrete_map={"High": "#F43F5E", "Medium": "#F59E0B", "Low": "#38BDF8"},
+            labels={"missing_percentage": "Missing Ratio (%)", "column": "Column"},
+            title="Null Value Sparsity per Feature"
+        )
+        fig_miss.update_layout(
+            template="plotly_dark",
+            paper_bgcolor="#182234",
+            plot_bgcolor="#111827",
+            height=320,
+            margin=dict(l=20, r=20, t=40, b=20)
+        )
+        st.plotly_chart(fig_miss, use_container_width=True)
+    else:
+        st.info("No missing values detected. All columns have 100% completeness.")
+
+with row1_col2:
+    st.markdown("### Statistical Outliers (IQR Method)")
+    outlier_reports = diagnosis["outlier_analysis"].get("column_reports", {})
+    out_data = [
+        {"column": col, "outlier_count": rep["outlier_count"], "outlier_pct": rep["outlier_pct"]}
+        for col, rep in outlier_reports.items() if rep["outlier_count"] > 0
+    ]
+    if out_data:
+        o_df = pd.DataFrame(out_data)
+        fig_out = px.bar(
+            o_df,
+            x="column",
+            y="outlier_count",
+            hover_data=["outlier_pct"],
+            color_discrete_sequence=["#8B5CF6"],
+            labels={"outlier_count": "Outliers Detected", "column": "Column"},
+            title="IQR 1.5x Anomaly Count per Numerical Feature"
+        )
+        fig_out.update_layout(
+            template="plotly_dark",
+            paper_bgcolor="#182234",
+            plot_bgcolor="#111827",
+            height=320,
+            margin=dict(l=20, r=20, t=40, b=20)
+        )
+        st.plotly_chart(fig_out, use_container_width=True)
+    else:
+        st.info("No statistical outliers detected in numerical columns.")
+
+st.markdown("---")
+
+# Chart Row 2: Data Type Composition & Correlation Heatmap
+row2_col1, row2_col2 = st.columns(2)
+
+with row2_col1:
+    st.markdown("### Attribute Type Distribution")
+    prof_overview = diagnosis["profile"]["overview"]
+    type_counts = {
+        "Numerical": prof_overview.get("numerical_columns_count", 0),
+        "Categorical/Text": prof_overview.get("categorical_columns_count", 0),
+        "Datetime": prof_overview.get("datetime_columns_count", 0),
+        "Boolean": prof_overview.get("boolean_columns_count", 0)
+    }
+    type_df = pd.DataFrame([{"Type": k, "Count": v} for k, v in type_counts.items() if v > 0])
+    if not type_df.empty:
+        fig_pie = px.pie(
+            type_df,
+            names="Type",
+            values="Count",
+            hole=0.45,
+            color_discrete_sequence=["#38BDF8", "#6366F1", "#10B981", "#F59E0B"],
+            title="Dataset Column Types"
+        )
+        fig_pie.update_layout(
+            template="plotly_dark",
+            paper_bgcolor="#182234",
+            plot_bgcolor="#111827",
+            height=320,
+            margin=dict(l=20, r=20, t=40, b=20)
+        )
+        st.plotly_chart(fig_pie, use_container_width=True)
+
+with row2_col2:
+    st.markdown("### Correlation Heatmap (Numerical Features)")
+    corr_matrix = diagnosis["profile"].get("correlation_matrix", {})
+    if corr_matrix and len(corr_matrix) >= 2:
+        corr_df = pd.DataFrame(corr_matrix)
+        fig_corr = px.imshow(
+            corr_df,
+            text_auto=".2f",
+            aspect="auto",
+            color_continuous_scale="RdBu_r",
+            zmin=-1,
+            zmax=1,
+            title="Pearson Correlation Coefficients"
+        )
+        fig_corr.update_layout(
+            template="plotly_dark",
+            paper_bgcolor="#182234",
+            plot_bgcolor="#111827",
+            height=320,
+            margin=dict(l=20, r=20, t=40, b=20)
+        )
+        st.plotly_chart(fig_corr, use_container_width=True)
+    else:
+        st.info("Insufficient numerical attributes (minimum 2 required) to construct correlation matrix.")
+
+st.markdown("---")
+
+# Chart Row 3: Feature-Level Distribution Explorers
+st.subheader("🔍 Attribute Level Exploration")
+tab_num_exp, tab_cat_exp = st.tabs(["Numerical Distribution Explorer", "Categorical Frequency Explorer"])
+
+with tab_num_exp:
+    num_cols = prof_overview.get("numerical_column_names", [])
+    if num_cols:
+        col_chosen = st.selectbox("Select Numerical Attribute to Inspect Distribution:", num_cols)
+        series_clean = df[col_chosen].dropna()
+
+        fig_dist = px.histogram(
+            df,
+            x=col_chosen,
+            marginal="box",
+            nbins=25,
+            color_discrete_sequence=["#38BDF8"],
+            title=f"Distribution & Box Plot for '{col_chosen}'"
+        )
+        fig_dist.update_layout(
+            template="plotly_dark",
+            paper_bgcolor="#182234",
+            plot_bgcolor="#111827",
+            height=360,
+            margin=dict(l=20, r=20, t=40, b=20)
+        )
+        st.plotly_chart(fig_dist, use_container_width=True)
+    else:
+        st.info("No numerical attributes present in dataset.")
+
+with tab_cat_exp:
+    cat_cols = prof_overview.get("categorical_column_names", [])
+    if cat_cols:
+        cat_chosen = st.selectbox("Select Categorical Attribute to Inspect Frequencies:", cat_cols)
+        top_counts = df[cat_chosen].dropna().astype(str).value_counts().head(10).reset_index()
+        top_counts.columns = [cat_chosen, "Count"]
+
+        fig_cat = px.bar(
+            top_counts,
+            x=cat_chosen,
+            y="Count",
+            color_discrete_sequence=["#6366F1"],
+            title=f"Top Categories for '{cat_chosen}'"
+        )
+        fig_cat.update_layout(
+            template="plotly_dark",
+            paper_bgcolor="#182234",
+            plot_bgcolor="#111827",
+            height=360,
+            margin=dict(l=20, r=20, t=40, b=20)
+        )
+        st.plotly_chart(fig_cat, use_container_width=True)
+    else:
+        st.info("No categorical attributes present in dataset.")
+
+render_footer()

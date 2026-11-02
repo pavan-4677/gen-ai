@@ -1,0 +1,22 @@
+CustomerID,Tenure,MonthlyCharges,TotalCharges,Contract,PaymentMethod,PaperlessBilling,Churn
+C-101,12,65.5,786.0,Month-to-month,Electronic check,Yes,No
+C-102,34,89.2,3032.8,One year,Mailed check,No,No
+C-103,,45.0,180.0,Month-to-month,Electronic check,Yes,Yes
+C-104,60,115.8,6948.0,Two year,Bank transfer,No,No
+C-105,2,20.1,40.2,Month-to-month,Mailed check,No,Yes
+C-106,45,78.9,,One year,Credit card,Yes,No
+C-107,18,55.4,997.2,Month-to-month,Electronic check,Yes,No
+C-108,72,120.0,8640.0,Two year,Credit card,No,No
+C-109,8,95.5,764.0,Month-to-month,Electronic check,Yes,Yes
+C-110,24,60.2,1444.8,One year,Mailed check,No,No
+C-102,34,89.2,3032.8,One year,Mailed check,No,No
+C-111,5,19.8,99.0,Month-to-month,Mailed check,No,No
+C-112,50,105.3,5265.0,Two year,Bank transfer,Yes,No
+C-113,1,70.5,70.5,Month-to-month,Electronic check,Yes,Yes
+C-114,300,80.0,24000.0,One year,Credit card,No,No
+C-115,15,40.0,600.0,Month-to-month,Mailed check,No,No
+C-116,68,110.5,7514.0,Two year,Bank transfer,Yes,No
+C-117,3,25.0,?,Month-to-month,Electronic check,Yes,Yes
+C-118,29,75.0,2175.0,One year,Credit card,Yes,No
+C-119,10,85.0,850.0,Month-to-month,Electronic check,Yes,Yes
+C-120,40,65.0,2600.0,Two year,Mailed check,No,No

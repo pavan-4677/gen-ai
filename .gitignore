@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+ENV/
+
+# Streamlit
+.streamlit/secrets.toml
+
+# Environment variables
+.env
+.env.local
+
+# Testing & Coverage
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Data & Output Files
+temp/
+*.log
+*.pdf
+*.xlsx
+*.csv
+!sample_data/*.csv
+!sample_data/*.xlsx
+
+# OS
+.DS_Store
+Thumbs.db
